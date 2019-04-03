@@ -4,6 +4,9 @@
 
 import math
 
+from AStar import a_star_planning
+from UAVHcfg import *
+
 '''
  Class: UAVHeading
 '''
@@ -14,7 +17,10 @@ class UAVHeading:
     time = 0
     thetaRef = 0
     thetaPossible = 0
+
     staticAreaLength = False
+    shift_x = 0
+    shift_y = 0
 
     '''
      UAVHeading Function: __init__
@@ -190,7 +196,7 @@ class UAVHeading:
         Description:
                     Returns the list points to define the scaled border.
     '''
-    def __scale_border(border, center, offset):
+    def __scale_border(self, border, center, offset):
         for pt in border:
             if pt[0] > center[0]:
                 pt[0] += offset
@@ -212,7 +218,7 @@ class UAVHeading:
                     Returns the list of points spaced between
                     p1 and p2.
     '''
-    def __intermediates(p1, p2, interval):
+    def __intermediates(self, p1, p2, interval):
         """ Credit:
             https://stackoverflow.com/questions/43594646/how-to-calculate-the-coordinates-of-the-line-between-two-points-in-python
         """
@@ -223,6 +229,94 @@ class UAVHeading:
 
         return [[p1[0] + i * x_spacing, p1[1] +  i * y_spacing] 
             for i in range(1, nb_points+1)]
+
+    '''
+    UAVLine Function: __format_astar_input
+        Parameters:
+                    koz: area points list to avoid from 
+                         other UAV
+        Description:
+                    Returns formatted data for A*:
+                        - Start Position
+                        - Goal Position
+                        - Border for Search Area
+                        - KeepOut Zone Points for other UAV
+    '''
+    def __format_astar_input(self, koz):
+        # Make Border - find min and max for x and y values
+        x_min, y_min = self.position[0], self.position[1]
+        x_max, y_max = self.position[0], self.position[1]
+
+        # compare with target position
+        if x_min > self.waypoint[0]:
+            x_min = self.waypoint[0]
+        if y_min > self.waypoint[1]:
+            y_min = self.waypoint[1]
+
+        if x_max < self.waypoint[0]:
+            x_max = self.waypoint[0]
+        if y_max < self.waypoint[1]:
+            y_max = self.waypoint[1]
+
+        # compare with koz
+        for pt in koz:
+            if x_min > pt[0]:
+                x_min = pt[0]
+            if y_min > pt[1]:
+                y_min = pt[1]
+
+            if x_max < pt[0]:
+                x_max = pt[0]
+            if y_max < pt[1]:
+                y_max = pt[1]
+        
+        border_pts = [[x_max, y_max], 
+                      [x_max, y_min],
+                      [x_min, y_max],
+                      [x_min, y_min]]
+
+        # add padding to border
+        center = midpoint((x_max, y_max), (x_min, y_min))
+        border_pts = scale_border(border_pts, center, (4 * interval_size))
+
+        # shift (minx, miny) to (0, 0) for A*
+        if (border_pts[3][0] < 0): # x min < 0
+            self.shift_x = abs(border_pts[3][0])
+        elif (border_pts[3][0] > 0): # x min > 0
+            self.shift_x = -abs(border_pts[3][0])
+        if (border_pts[3][1] < 0): # y min < 0
+            self.shift_y = abs(border_pts[3][1])
+        elif (border_pts[3][1] > 0): # y min > 0
+            self.shift_y = -abs(border_pts[3][1])
+        
+        # shift border corners
+        for i in range(len(border_pts)):
+            border_pts[i][0] += self.shift_x
+            border_pts[i][1] += self.shift_y
+        # add interval points for border
+        border_pts += intermediates(border_pts[0], border_pts[1], interval_size)
+        border_pts += intermediates(border_pts[1], border_pts[3], interval_size)
+        border_pts += intermediates(border_pts[2], border_pts[0], interval_size)
+        border_pts += intermediates(border_pts[3], border_pts[2], interval_size)
+
+        # shift KeepOut zone points
+        for pt in koz:
+            pt[0] += self.shift_x
+            pt[1] += self.shift_y
+        # add interval points for koz
+        koz_pts = []
+        for i in range(len(koz) -1):
+            koz_pts += intermediates(koz[i], koz[i+1], interval_size)
+        koz_pts += intermediates(koz[-1], koz[0], interval_size)
+        koz_pts += intermediates(koz[0], koz[1], interval_size)
+
+        # shift start and goal positions
+        start_pt = [(self.position[0] + self.shift_x),
+                    (self.position[1] + self.shift_y)]
+        goal_pt = [(self.waypoint[0] + self.shift_x),
+                   (self.waypoint[1] + self.shift_y)]
+
+        return start_pt, goal_pt, border_pts, koz_pts
 
     '''
     UAVLine Function: avoid
@@ -237,11 +331,4 @@ class UAVHeading:
         if len(intersects) == 0:
             raise ValueError('Nothing to Avoid.')
 
-        max_dist = 0
-        select_point = self.position
-        for pt in intersects:
-            dist = self.__distance(self.position, pt)
-            if dist > max_dist:
-                max_dist = dist
-                select_point = pt
-        return select_point, area_points
+       path_x, path_y = [], []
