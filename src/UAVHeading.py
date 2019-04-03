@@ -3,8 +3,9 @@
 ############################################
 
 import math
+import matplotlib.pyplot as plt
 
-from AStar import a_star_planning
+from AStar import a_star_planning, show_animation
 from UAVHcfg import *
 
 '''
@@ -61,7 +62,6 @@ class UAVHeading:
         points = [self.position]
 
         for div in range(-2, -5, -1):
-            print(div, theta_ref + (theta_possible / div))
             pt_x = self.position[0] + (area_length * math.cos(theta_ref + (theta_possible / div)))
             pt_y = self.position[1] + (area_length * math.sin(theta_ref + (theta_possible / div)))
             points.append((pt_x, pt_y))
@@ -72,7 +72,6 @@ class UAVHeading:
         points.append((pt_x, pt_y))
 
         for div in range(4, 1, -1):
-            print(div, theta_ref + (theta_possible / div))
             pt_x = self.position[0] + (area_length * math.cos(theta_ref + (theta_possible / div)))
             pt_y = self.position[1] + (area_length * math.sin(theta_ref + (theta_possible / div)))
             points.append((pt_x, pt_y))
@@ -150,7 +149,6 @@ class UAVHeading:
         intersects = []
         other_area_points = []
         self_line = [(self.position[0], self.position[1]), (self.waypoint[0], self.waypoint[1])]
-        # print('self line', self_line)
 
         distance_to_other = self.__distance(self.position, uavh_other.position)
 
@@ -158,7 +156,6 @@ class UAVHeading:
             other_area_points = uavh_other.possibleFlightArea((2 * distance_to_other))
             for j in range(len(other_area_points) -1):
                 other_line = [other_area_points[j], other_area_points[j+1]]
-                # print('\tother line', other_line)
                 try:
                     point = self.__lineIntersect(self_line, other_line)
 
@@ -172,7 +169,6 @@ class UAVHeading:
                 other_area_points = uavh_other.possibleFlightArea(uavh_other.staticAreaLength)
                 for j in range(len(other_area_points) -1):
                     other_line = [other_area_points[j], other_area_points[j+1]]
-                    # print('\tother line', other_line)
                     try:
                         point = self.__lineIntersect(self_line, other_line)
 
@@ -182,7 +178,6 @@ class UAVHeading:
                         continue
             elif uavh_other.staticAreaLength: # if there are 2 intersections and the static flight area length is set, reset
                 uavh_other.staticAreaLength = False
-        print(intersects)
         return intersects, other_area_points
 
     '''
@@ -341,11 +336,22 @@ class UAVHeading:
             ox.append(pt[0])
             oy.append(pt[1])
 
+        if show_animation:  # pragma: no cover
+            plt.plot(ox, oy, ".k")
+            plt.plot(sx, sy, "xr")
+            plt.plot(gx, gy, "xb")
+            plt.grid(True)
+            plt.axis("equal")
+
         # get optimal path to destination
         path_x, path_y = a_star_planning(start[0], start[1],
                                          goal[0], goal[1],
                                          ox, oy,
                                          INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+
+        if show_animation:  # pragma: no cover
+            plt.plot(path_x, path_y, "-r")
+            plt.show()
 
         # format A* output for waypoint list
         path_pts = []
