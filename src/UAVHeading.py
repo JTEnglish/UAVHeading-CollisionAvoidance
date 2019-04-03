@@ -29,17 +29,15 @@ class UAVHeading:
                     pos: UAV position (x, y),
                     waypt: UAV target position (x, y),
                     speed: UAV Speed (m/s),
-                    time: time to calculate maximum distance for flight (s),
                     heading: UAV heading (degrees),
                     tPossible: possible turn angle for UAV (degrees)
         Description:
                     Constructor for UAVHeading Class.
     '''
-    def __init__(self, pos, waypt, speed, time, heading, tPossible):
+    def __init__(self, pos, waypt, speed, heading, tPossible):
         self.position = pos
         self.waypoint = waypt
         self.speed = speed
-        self.time = time
         self.thetaRef = heading
         # self.thetaRef = 90 - heading
         self.thetaPossible = tPossible
