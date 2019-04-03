@@ -12,7 +12,7 @@ See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 import matplotlib.pyplot as plt
 import math
 
-show_animation = False
+show_animation = True
 
 class Node:
 
@@ -145,7 +145,6 @@ def calc_obstacle_map(ox, oy, reso, vr):
 
     # obstacle map generation
     obmap = [[False for i in range(xwidth)] for i in range(ywidth)]
-    print('xwidth:', xwidth, ' ywidth:', ywidth)
     for ix in range(xwidth):
         x = ix + minx
         for iy in range(ywidth):

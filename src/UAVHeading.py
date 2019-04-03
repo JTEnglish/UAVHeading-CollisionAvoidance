@@ -57,24 +57,24 @@ class UAVHeading:
         if self.staticAreaLength:
             area_length = self.staticAreaLength
 
-        points = [self.position]
+        points = [list(self.position)]
 
         for div in range(-2, -5, -1):
             pt_x = self.position[0] + (area_length * math.cos(theta_ref + (theta_possible / div)))
             pt_y = self.position[1] + (area_length * math.sin(theta_ref + (theta_possible / div)))
-            points.append((pt_x, pt_y))
+            points.append([pt_x, pt_y])
 
         # +-0
         pt_x = self.position[0] + (area_length * math.cos(theta_ref))
         pt_y = self.position[1] + (area_length * math.sin(theta_ref))
-        points.append((pt_x, pt_y))
+        points.append([pt_x, pt_y])
 
         for div in range(4, 1, -1):
             pt_x = self.position[0] + (area_length * math.cos(theta_ref + (theta_possible / div)))
             pt_y = self.position[1] + (area_length * math.sin(theta_ref + (theta_possible / div)))
-            points.append((pt_x, pt_y))
+            points.append([pt_x, pt_y])
 
-        points.append(self.position)
+        points.append(list(self.position))
         return points
 
     '''
@@ -214,13 +214,26 @@ class UAVHeading:
         """ Credit:
             https://stackoverflow.com/questions/43594646/how-to-calculate-the-coordinates-of-the-line-between-two-points-in-python
         """
-        nb_points = int(dist(p1, p2) / interval)
+        nb_points = int(self.__distance(p1, p2) / interval)
 
         x_spacing = (p2[0] - p1[0]) / (nb_points + 1)
         y_spacing = (p2[1] - p1[1]) / (nb_points + 1)
 
         return [[p1[0] + i * x_spacing, p1[1] +  i * y_spacing] 
             for i in range(1, nb_points+1)]
+
+    '''
+    UAVLine Function: __midpoint
+        Parameters:
+                    a: first point (x,y),
+                    b: second point (x,y)
+        Description:
+                    Returns the midpoint of a and b
+    '''
+    def __midpoint(self, a, b):
+        a = (float(a[0]), float(a[1]))
+        b = (float(b[0]), float(b[1]))
+        return ( (a[0]+b[0])/2, (a[1]+b[1])/2 )
 
     '''
     UAVLine Function: __format_astar_input
@@ -268,8 +281,8 @@ class UAVHeading:
                       [x_min, y_min]]
 
         # add padding to border
-        center = midpoint((x_max, y_max), (x_min, y_min))
-        border_pts = scale_border(border_pts, center, (4 * INTERVAL_SIZE))
+        center = self.__midpoint((x_max, y_max), (x_min, y_min))
+        border_pts = self.__scale_border(border_pts, center, (4 * INTERVAL_SIZE))
 
         # shift (minx, miny) to (0, 0) for A*
         if (border_pts[3][0] < 0): # x min < 0
@@ -321,6 +334,8 @@ class UAVHeading:
     def avoid(self, uavh_other):
         intersects, area_points = self.__findIntersects(uavh_other)
         if len(intersects) == 0:
+            print(intersects)
+            print(area_points)
             raise ValueError('Nothing to Avoid.')
 
         # format UAVHeading data for A* input
@@ -336,8 +351,8 @@ class UAVHeading:
 
         if show_animation:  # pragma: no cover
             plt.plot(ox, oy, ".k")
-            plt.plot(sx, sy, "xr")
-            plt.plot(gx, gy, "xb")
+            plt.plot(start[0], start[1], "xr")
+            plt.plot(goal[0], goal[1], "xb")
             plt.grid(True)
             plt.axis("equal")
 
