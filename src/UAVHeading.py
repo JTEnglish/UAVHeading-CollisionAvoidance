@@ -154,8 +154,7 @@ class UAVHeading:
 
         distance_to_other = self.__distance(self.position, uavh_other.position)
 
-        ######### STUB DISTANCE THRESHOLD
-        if distance_to_other < 0.01:
+        if distance_to_other < DISTANCE_THRESHOLD:
             other_area_points = uavh_other.possibleFlightArea((2 * distance_to_other))
             for j in range(len(other_area_points) -1):
                 other_line = [other_area_points[j], other_area_points[j+1]]
@@ -277,7 +276,7 @@ class UAVHeading:
 
         # add padding to border
         center = midpoint((x_max, y_max), (x_min, y_min))
-        border_pts = scale_border(border_pts, center, (4 * interval_size))
+        border_pts = scale_border(border_pts, center, (4 * INTERVAL_SIZE))
 
         # shift (minx, miny) to (0, 0) for A*
         if (border_pts[3][0] < 0): # x min < 0
@@ -294,10 +293,10 @@ class UAVHeading:
             border_pts[i][0] += self.shift_x
             border_pts[i][1] += self.shift_y
         # add interval points for border
-        border_pts += intermediates(border_pts[0], border_pts[1], interval_size)
-        border_pts += intermediates(border_pts[1], border_pts[3], interval_size)
-        border_pts += intermediates(border_pts[2], border_pts[0], interval_size)
-        border_pts += intermediates(border_pts[3], border_pts[2], interval_size)
+        border_pts += self.__intermediates(border_pts[0], border_pts[1], INTERVAL_SIZE)
+        border_pts += self.__intermediates(border_pts[1], border_pts[3], INTERVAL_SIZE)
+        border_pts += self.__intermediates(border_pts[2], border_pts[0], INTERVAL_SIZE)
+        border_pts += self.__intermediates(border_pts[3], border_pts[2], INTERVAL_SIZE)
 
         # shift KeepOut zone points
         for pt in koz:
@@ -306,9 +305,9 @@ class UAVHeading:
         # add interval points for koz
         koz_pts = []
         for i in range(len(koz) -1):
-            koz_pts += intermediates(koz[i], koz[i+1], interval_size)
-        koz_pts += intermediates(koz[-1], koz[0], interval_size)
-        koz_pts += intermediates(koz[0], koz[1], interval_size)
+            koz_pts += self.__intermediates(koz[i], koz[i+1], INTERVAL_SIZE)
+        koz_pts += self.__intermediates(koz[-1], koz[0], INTERVAL_SIZE)
+        koz_pts += self.__intermediates(koz[0], koz[1], INTERVAL_SIZE)
 
         # shift start and goal positions
         start_pt = [(self.position[0] + self.shift_x),
@@ -331,4 +330,30 @@ class UAVHeading:
         if len(intersects) == 0:
             raise ValueError('Nothing to Avoid.')
 
-       path_x, path_y = [], []
+        # format UAVHeading data for A* input
+        start, goal, border, koz = self.__format_astar_input(area_points)
+
+        ox, oy = [], []
+        for pt in border:
+            ox.append(pt[0])
+            oy.append(pt[1])
+        for pt in koz:
+            ox.append(pt[0])
+            oy.append(pt[1])
+
+        # get optimal path to destination
+        path_x, path_y = a_star_planning(start[0], start[1],
+                                         goal[0], goal[1],
+                                         ox, oy,
+                                         INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+
+        # format A* output for waypoint list
+        path_pts = []
+        for i in range(len(path_x)):
+            pt = []
+            pt.append(path_x[i] - self.shift_x)
+            pt.append(path_y[i] - self.shift_y)
+
+            path_pts.append(pt)
+
+        return path_pts
