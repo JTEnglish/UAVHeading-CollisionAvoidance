@@ -23,7 +23,8 @@ def main():
                       0.0,
                       30.0)
 
-    uav0.avoid(uav1)
+    waypoints = uav0.avoid(uav1)
+    print(waypoints)
 
 if __name__ == '__main__':
     main()

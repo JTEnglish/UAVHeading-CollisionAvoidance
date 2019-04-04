@@ -334,8 +334,6 @@ class UAVHeading:
     def avoid(self, uavh_other):
         intersects, area_points = self.__findIntersects(uavh_other)
         if len(intersects) == 0:
-            print(intersects)
-            print(area_points)
             raise ValueError('Nothing to Avoid.')
 
         # format UAVHeading data for A* input
@@ -373,6 +371,19 @@ class UAVHeading:
             pt.append(path_x[i] - self.shift_x)
             pt.append(path_y[i] - self.shift_y)
 
-            path_pts.append(pt)
+            # ignore extra waypoints that are between the previous and next
+            if (i > 0) and (i < len(path_x) - 1):
+                last_pt = []
+                last_pt.append(path_x[i-1] - self.shift_x)
+                last_pt.append(path_y[i-1] - self.shift_y)
+
+                next_pt = []    
+                next_pt.append(path_x[i+1] - self.shift_x)
+                next_pt.append(path_y[i+1] - self.shift_y)
+
+                if not (self.__isBetween(last_pt, pt, next_pt)):
+                    path_pts.append(pt)
+            else:
+                path_pts.append(pt)
 
         return path_pts
