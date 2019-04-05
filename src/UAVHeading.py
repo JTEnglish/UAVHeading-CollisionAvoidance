@@ -334,7 +334,7 @@ class UAVHeading:
     def avoid(self, uavh_other):
         intersects, area_points = self.__findIntersects(uavh_other)
         if len(intersects) == 0:
-            raise ValueError('Nothing to Avoid.')
+            return []
 
         # format UAVHeading data for A* input
         start, goal, border, koz = self.__format_astar_input(area_points)
