@@ -263,17 +263,16 @@ class UAVHeading:
         if y_max < self.waypoint[1]:
             y_max = self.waypoint[1]
 
-        # compare with koz
-        for pt in koz:
-            if x_min > pt[0]:
-                x_min = pt[0]
-            if y_min > pt[1]:
-                y_min = pt[1]
+        # compare with uav other position
+        if x_min > koz[0][0]:
+            x_min = koz[0][0]
+        if y_min > koz[0][1]:
+            y_min = koz[0][1]
 
-            if x_max < pt[0]:
-                x_max = pt[0]
-            if y_max < pt[1]:
-                y_max = pt[1]
+        if x_max < koz[0][0]:
+            x_max = koz[0][0]
+        if y_max < koz[0][1]:
+            y_max = koz[0][1]
         
         border_pts = [[x_max, y_max], 
                       [x_max, y_min],
