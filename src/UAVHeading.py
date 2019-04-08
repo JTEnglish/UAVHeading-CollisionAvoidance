@@ -233,7 +233,7 @@ class UAVHeading:
     def __midpoint(self, a, b):
         a = (float(a[0]), float(a[1]))
         b = (float(b[0]), float(b[1]))
-        return ( (a[0]+b[0])/2, (a[1]+b[1])/2 )
+        return [ (a[0]+b[0])/2, (a[1]+b[1])/2 ]
 
     '''
     UAVLine Function: __format_astar_input
@@ -252,16 +252,29 @@ class UAVHeading:
         x_min, y_min = self.position[0], self.position[1]
         x_max, y_max = self.position[0], self.position[1]
 
-        # compare with target position
-        if x_min > self.waypoint[0]:
-            x_min = self.waypoint[0]
-        if y_min > self.waypoint[1]:
-            y_min = self.waypoint[1]
+        pseudo_target = self.__midpoint(self.position, self.waypoint)
 
-        if x_max < self.waypoint[0]:
-            x_max = self.waypoint[0]
-        if y_max < self.waypoint[1]:
-            y_max = self.waypoint[1]
+        # # compare with target position
+        # if x_min > self.waypoint[0]:
+        #     x_min = self.waypoint[0]
+        # if y_min > self.waypoint[1]:
+        #     y_min = self.waypoint[1]
+
+        # if x_max < self.waypoint[0]:
+        #     x_max = self.waypoint[0]
+        # if y_max < self.waypoint[1]:
+        #     y_max = self.waypoint[1]
+
+        # compare with target position
+        if x_min > pseudo_target[0]:
+            x_min = pseudo_target[0]
+        if y_min > pseudo_target[1]:
+            y_min = pseudo_target[1]
+
+        if x_max < pseudo_target[0]:
+            x_max = pseudo_target[0]
+        if y_max < pseudo_target[1]:
+            y_max = pseudo_target[1]
 
         # compare with uav other position
         if x_min > koz[0][0]:
@@ -317,8 +330,10 @@ class UAVHeading:
         # shift start and goal positions
         start_pt = [(self.position[0] + self.shift_x),
                     (self.position[1] + self.shift_y)]
-        goal_pt = [(self.waypoint[0] + self.shift_x),
-                   (self.waypoint[1] + self.shift_y)]
+        # goal_pt = [(self.waypoint[0] + self.shift_x),
+        #            (self.waypoint[1] + self.shift_y)]
+        goal_pt = [(pseudo_target[0] + self.shift_x),
+                   (pseudo_target[1] + self.shift_y)]
 
         return start_pt, goal_pt, border_pts, koz_pts
 
@@ -334,6 +349,8 @@ class UAVHeading:
         intersects, area_points = self.__findIntersects(uavh_other)
         if len(intersects) == 0:
             return []
+
+        print('AVOID.')
 
         # format UAVHeading data for A* input
         start, goal, border, koz = self.__format_astar_input(area_points)
@@ -353,11 +370,14 @@ class UAVHeading:
             plt.grid(True)
             plt.axis("equal")
 
-        # get optimal path to destination
-        path_x, path_y = a_star_planning(start[0], start[1],
-                                         goal[0], goal[1],
-                                         ox, oy,
-                                         INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+        try: # get optimal path to destination
+            path_x, path_y = a_star_planning(start[0], start[1],
+                                             goal[0], goal[1],
+                                             ox, oy,
+                                             INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+        except ValueError:
+            print('\t**No valid path found**')
+            return []
 
         if show_animation:  # pragma: no cover
             plt.plot(path_x, path_y, "-r")
@@ -384,5 +404,6 @@ class UAVHeading:
                     path_pts.append(pt)
             else:
                 path_pts.append(pt)
+        path_pts.append(self.waypoint)
 
         return path_pts
