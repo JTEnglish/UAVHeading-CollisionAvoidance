@@ -370,14 +370,25 @@ class UAVHeading:
             plt.grid(True)
             plt.axis("equal")
 
+        use_pseudo_target = False
         try: # get optimal path to destination
+            print('\t<Using pseudo-target position>')
             path_x, path_y = a_star_planning(start[0], start[1],
                                              goal[0], goal[1],
                                              ox, oy,
                                              INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+            use_pseudo_target = True
         except ValueError:
-            print('\t**No valid path found**')
-            return []
+            print('\t\t**No valid path found.**')
+            try:
+                path_x, path_y = a_star_planning(start[0], start[1],
+                                                self.waypoint[0], self.waypoint[1],
+                                                ox, oy,
+                                                INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+            except ValueError:
+                print('\t<Using real target position>')
+                print('\t\t**No valid path found.**')
+                return []
 
         if show_animation:  # pragma: no cover
             plt.plot(path_x, path_y, "-r")
@@ -385,7 +396,8 @@ class UAVHeading:
 
         # format A* output for waypoint list
         path_pts = []
-        path_pts.append(self.waypoint)
+        if use_pseudo_target:
+            path_pts.append(self.waypoint)
         for i in range(len(path_x)):
             pt = []
             pt.append(path_x[i] - self.shift_x)
