@@ -247,34 +247,35 @@ class UAVHeading:
                         - Border for Search Area
                         - KeepOut Zone Points for other UAV
     '''
-    def __format_astar_input(self, koz):
+    def __format_astar_input(self, koz, use_pseudo_target):
         # Make Border - find min and max for x and y values
         x_min, y_min = self.position[0], self.position[1]
         x_max, y_max = self.position[0], self.position[1]
 
         pseudo_target = self.__midpoint(self.position, self.waypoint)
 
-        # # compare with target position
-        # if x_min > self.waypoint[0]:
-        #     x_min = self.waypoint[0]
-        # if y_min > self.waypoint[1]:
-        #     y_min = self.waypoint[1]
+        if not use_pseudo_target:
+            # compare with target position
+            if x_min > self.waypoint[0]:
+                x_min = self.waypoint[0]
+            if y_min > self.waypoint[1]:
+                y_min = self.waypoint[1]
 
-        # if x_max < self.waypoint[0]:
-        #     x_max = self.waypoint[0]
-        # if y_max < self.waypoint[1]:
-        #     y_max = self.waypoint[1]
+            if x_max < self.waypoint[0]:
+                x_max = self.waypoint[0]
+            if y_max < self.waypoint[1]:
+                y_max = self.waypoint[1]
+        else:
+            # compare with target position
+            if x_min > pseudo_target[0]:
+                x_min = pseudo_target[0]
+            if y_min > pseudo_target[1]:
+                y_min = pseudo_target[1]
 
-        # compare with target position
-        if x_min > pseudo_target[0]:
-            x_min = pseudo_target[0]
-        if y_min > pseudo_target[1]:
-            y_min = pseudo_target[1]
-
-        if x_max < pseudo_target[0]:
-            x_max = pseudo_target[0]
-        if y_max < pseudo_target[1]:
-            y_max = pseudo_target[1]
+            if x_max < pseudo_target[0]:
+                x_max = pseudo_target[0]
+            if y_max < pseudo_target[1]:
+                y_max = pseudo_target[1]
 
         # compare with uav other position
         if x_min > koz[0][0]:
@@ -352,27 +353,30 @@ class UAVHeading:
 
         print('AVOID.')
 
-        # format UAVHeading data for A* input
-        start, goal, border, koz = self.__format_astar_input(area_points)
+        
 
-        ox, oy = [], []
-        for pt in border:
-            ox.append(pt[0])
-            oy.append(pt[1])
-        for pt in koz:
-            ox.append(pt[0])
-            oy.append(pt[1])
-
-        if show_animation:  # pragma: no cover
-            plt.plot(ox, oy, ".k")
-            plt.plot(start[0], start[1], "xr")
-            plt.plot(goal[0], goal[1], "xb")
-            plt.grid(True)
-            plt.axis("equal")
-
-        use_pseudo_target = False
+        use_pseudo_target = True
         try: # get optimal path to destination
             print('\t<Using pseudo-target position>')
+
+            # format UAVHeading data for A* input
+            start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target)
+
+            ox, oy = [], []
+            for pt in border:
+                ox.append(pt[0])
+                oy.append(pt[1])
+            for pt in koz:
+                ox.append(pt[0])
+                oy.append(pt[1])
+
+            if show_animation:  # pragma: no cover
+                plt.plot(ox, oy, ".k")
+                plt.plot(start[0], start[1], "xr")
+                plt.plot(goal[0], goal[1], "xb")
+                plt.grid(True)
+                plt.axis("equal")
+
             path_x, path_y = a_star_planning(start[0], start[1],
                                              goal[0], goal[1],
                                              ox, oy,
@@ -381,10 +385,29 @@ class UAVHeading:
         except ValueError:
             print('\t\t**No valid path found.**')
             try:
+                # format UAVHeading data for A* input
+                start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target)
+
+                ox, oy = [], []
+                for pt in border:
+                    ox.append(pt[0])
+                    oy.append(pt[1])
+                for pt in koz:
+                    ox.append(pt[0])
+                    oy.append(pt[1])
+
+                if show_animation:  # pragma: no cover
+                    plt.plot(ox, oy, ".k")
+                    plt.plot(start[0], start[1], "xr")
+                    plt.plot(goal[0], goal[1], "xb")
+                    plt.grid(True)
+                    plt.axis("equal")
+
                 path_x, path_y = a_star_planning(start[0], start[1],
-                                                self.waypoint[0], self.waypoint[1],
-                                                ox, oy,
-                                                INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+                                             goal[0], goal[1],
+                                             ox, oy,
+                                             INTERVAL_SIZE, (2 * INTERVAL_SIZE))
+                use_pseudo_target = False
             except ValueError:
                 print('\t<Using real target position>')
                 print('\t\t**No valid path found.**')
