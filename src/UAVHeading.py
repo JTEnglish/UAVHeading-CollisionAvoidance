@@ -12,8 +12,8 @@ from UAVHcfg import *
  Class: UAVHeading
 '''
 class UAVHeading:
-    position = ()
-    waypoint = ()
+    position = []
+    waypoint = []
     speed = 0
     time = 0
     thetaRef = 0
@@ -35,8 +35,8 @@ class UAVHeading:
                     Constructor for UAVHeading Class.
     '''
     def __init__(self, pos, waypt, speed, heading, tPossible):
-        self.position = pos
-        self.waypoint = waypt
+        self.position = list(pos)
+        self.waypoint = list(waypt)
         self.speed = speed
         self.thetaRef = heading
         # self.thetaRef = 90 - heading
@@ -385,6 +385,7 @@ class UAVHeading:
 
         # format A* output for waypoint list
         path_pts = []
+        path_pts.append(self.waypoint)
         for i in range(len(path_x)):
             pt = []
             pt.append(path_x[i] - self.shift_x)
@@ -404,6 +405,4 @@ class UAVHeading:
                     path_pts.append(pt)
             else:
                 path_pts.append(pt)
-        path_pts.append(self.waypoint)
-
         return path_pts
