@@ -26,5 +26,21 @@ def main():
     waypoints = uav0.avoid(uav1)
     print(waypoints)
 
+                    # (pos, waypt, speed, heading, tPossible)
+    uav0 = UAVHeading((1.5156, -132.5403),
+                      (1.5156, -132.5111),
+                      50.0,
+                      90.0,
+                      30.0)
+
+    uav1 = UAVHeading((1.5156, -132.5321),
+                      (1.5156, -132.403),
+                      50.0,
+                      270.0,
+                      30.0)
+
+    waypoints = uav0.avoid(uav1)
+    print(waypoints)
+
 if __name__ == '__main__':
     main()

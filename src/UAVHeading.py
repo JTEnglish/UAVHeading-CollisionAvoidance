@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from AStar import a_star_planning, show_animation
 from UAVHcfg import *
+from TerminalColors import TerminalColors as TC
 
 '''
  Class: UAVHeading
@@ -161,7 +162,11 @@ class UAVHeading:
                         intersects.append(point)
                 except ValueError:
                     continue
-            if len(intersects) == 1: # UAV 0 position possibly in UAV 1 flight area
+
+            closeIntersects = False
+            if len(intersects) == 2:
+                closeIntersects = math.isclose(intersects[0][0], intersects[1][0]) and math.isclose(intersects[0][1], intersects[1][1])
+            if (len(intersects) == 1) or closeIntersects: # UAV 0 position possibly in UAV 1 flight area
                 if not uavh_other.staticAreaLength: # set to static flight area length
                     uavh_other.staticAreaLength = distance_to_other / 2
                 other_area_points = uavh_other.possibleFlightArea(uavh_other.staticAreaLength)
@@ -247,14 +252,19 @@ class UAVHeading:
                         - Border for Search Area
                         - KeepOut Zone Points for other UAV
     '''
-    def __format_astar_input(self, koz, use_pseudo_target):
+    def __format_astar_input(self, koz, use_pseudo_target, staticAreaLength):
+        if staticAreaLength:
+            print(TC.OKBLUE + '\t<Using static avoid area length>' + TC.ENDC)
+        
         # Make Border - find min and max for x and y values
         x_min, y_min = self.position[0], self.position[1]
         x_max, y_max = self.position[0], self.position[1]
 
         pseudo_target = self.__midpoint(self.position, self.waypoint)
 
-        if not use_pseudo_target:
+        if not use_pseudo_target and not staticAreaLength:
+            print(TC.OKBLUE + '\t<Using real target position>' + TC.ENDC)
+
             # compare with target position
             if x_min > self.waypoint[0]:
                 x_min = self.waypoint[0]
@@ -266,7 +276,9 @@ class UAVHeading:
             if y_max < self.waypoint[1]:
                 y_max = self.waypoint[1]
         else:
-            # compare with target position
+            print(TC.OKBLUE + '\t<Using pseudo-target position>' + TC.ENDC)
+
+            # compare with pseudo-target position
             if x_min > pseudo_target[0]:
                 x_min = pseudo_target[0]
             if y_min > pseudo_target[1]:
@@ -277,16 +289,29 @@ class UAVHeading:
             if y_max < pseudo_target[1]:
                 y_max = pseudo_target[1]
 
-        # compare with uav other position
-        if x_min > koz[0][0]:
-            x_min = koz[0][0]
-        if y_min > koz[0][1]:
-            y_min = koz[0][1]
+        if not staticAreaLength:
+            # compare with uav other position
+            if x_min > koz[0][0]:
+                x_min = koz[0][0]
+            if y_min > koz[0][1]:
+                y_min = koz[0][1]
 
-        if x_max < koz[0][0]:
-            x_max = koz[0][0]
-        if y_max < koz[0][1]:
-            y_max = koz[0][1]
+            if x_max < koz[0][0]:
+                x_max = koz[0][0]
+            if y_max < koz[0][1]:
+                y_max = koz[0][1]
+        else:
+            # compare with all koz points
+            for pt in koz:
+                if x_min > pt[0]:
+                    x_min = pt[0]
+                if y_min > pt[1]:
+                    y_min = pt[1]
+
+                if x_max < pt[0]:
+                    x_max = pt[0]
+                if y_max < pt[1]:
+                    y_max = pt[1]
         
         border_pts = [[x_max, y_max], 
                       [x_max, y_min],
@@ -351,16 +376,12 @@ class UAVHeading:
         if len(intersects) == 0:
             return []
 
-        print('AVOID.')
-
-        
+        print(TC.WARNING + 'AVOID.' + TC.ENDC)
 
         use_pseudo_target = True
         try: # get optimal path to destination
-            print('\t<Using pseudo-target position>')
-
             # format UAVHeading data for A* input
-            start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target)
+            start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target, bool(uavh_other.staticAreaLength))
 
             ox, oy = [], []
             for pt in border:
@@ -377,16 +398,19 @@ class UAVHeading:
                 plt.grid(True)
                 plt.axis("equal")
 
+            # plt.show()
+            # import time
+            # time.sleep(20.0)
+
             path_x, path_y = a_star_planning(start[0], start[1],
                                              goal[0], goal[1],
                                              ox, oy,
                                              INTERVAL_SIZE, (2 * INTERVAL_SIZE))
-            use_pseudo_target = True
         except ValueError:
-            print('\t\t**No valid path found.**')
+            use_pseudo_target = False
             try:
                 # format UAVHeading data for A* input
-                start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target)
+                start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target, bool(uavh_other.staticAreaLength))
 
                 ox, oy = [], []
                 for pt in border:
@@ -407,11 +431,9 @@ class UAVHeading:
                                              goal[0], goal[1],
                                              ox, oy,
                                              INTERVAL_SIZE, (2 * INTERVAL_SIZE))
-                use_pseudo_target = False
             except ValueError:
-                print('\t<Using real target position>')
                 print('\t\t**No valid path found.**')
-                return []
+            return []
 
         if show_animation:  # pragma: no cover
             plt.plot(path_x, path_y, "-r")
