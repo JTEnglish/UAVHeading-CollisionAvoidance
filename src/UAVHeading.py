@@ -336,22 +336,24 @@ class UAVHeading:
         for i in range(len(border_pts)):
             border_pts[i][0] += self.shift_x
             border_pts[i][1] += self.shift_y
+
         # add interval points for border
         border_pts += self.__intermediates(border_pts[0], border_pts[1], INTERVAL_SIZE)
         border_pts += self.__intermediates(border_pts[1], border_pts[3], INTERVAL_SIZE)
         border_pts += self.__intermediates(border_pts[2], border_pts[0], INTERVAL_SIZE)
         border_pts += self.__intermediates(border_pts[3], border_pts[2], INTERVAL_SIZE)
 
+        _koz = [] # modifying koz list passed by reference causes a bug for using real target case
         # shift KeepOut zone points
         for pt in koz:
-            pt[0] += self.shift_x
-            pt[1] += self.shift_y
+            _koz.append([(pt[0] + self.shift_x), (pt[1] + self.shift_y)])
+
         # add interval points for koz
         koz_pts = []
-        for i in range(len(koz) -1):
-            koz_pts += self.__intermediates(koz[i], koz[i+1], INTERVAL_SIZE)
-        koz_pts += self.__intermediates(koz[-1], koz[0], INTERVAL_SIZE)
-        koz_pts += self.__intermediates(koz[0], koz[1], INTERVAL_SIZE)
+        for i in range(len(_koz) -1):
+            koz_pts += self.__intermediates(_koz[i], _koz[i+1], INTERVAL_SIZE)
+        koz_pts += self.__intermediates(_koz[-1], _koz[0], INTERVAL_SIZE)
+        koz_pts += self.__intermediates(_koz[0], _koz[1], INTERVAL_SIZE)
 
         # shift start and goal positions
         start_pt = [(self.position[0] + self.shift_x),
@@ -398,10 +400,6 @@ class UAVHeading:
                 plt.grid(True)
                 plt.axis("equal")
 
-            # plt.show()
-            # import time
-            # time.sleep(20.0)
-
             path_x, path_y = a_star_planning(start[0], start[1],
                                              goal[0], goal[1],
                                              ox, oy,
@@ -432,8 +430,8 @@ class UAVHeading:
                                              ox, oy,
                                              INTERVAL_SIZE, (2 * INTERVAL_SIZE))
             except ValueError:
-                print('\t\t**No valid path found.**')
-            return []
+                print(TC.FAIL + '\t\t**No valid path found.**' + TC.ENDC)
+                return []
 
         if show_animation:  # pragma: no cover
             plt.plot(path_x, path_y, "-r")
