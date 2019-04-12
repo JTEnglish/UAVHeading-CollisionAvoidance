@@ -376,7 +376,7 @@ class UAVHeading:
     def avoid(self, uavh_other):
         intersects, area_points = self.__findIntersects(uavh_other)
         if len(intersects) == 0:
-            return []
+            return [], area_points
 
         print(TC.WARNING + 'AVOID.' + TC.ENDC)
 
@@ -431,7 +431,7 @@ class UAVHeading:
                                              INTERVAL_SIZE, (2 * INTERVAL_SIZE))
             except ValueError:
                 print(TC.FAIL + '\t\t**No valid path found.**' + TC.ENDC)
-                return []
+                return [], area_points
 
         if show_animation:  # pragma: no cover
             plt.plot(path_x, path_y, "-r")
@@ -460,4 +460,4 @@ class UAVHeading:
                     path_pts.append(pt)
             else:
                 path_pts.append(pt)
-        return path_pts
+        return path_pts, area_points
