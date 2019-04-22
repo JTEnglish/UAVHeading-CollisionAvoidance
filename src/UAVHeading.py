@@ -44,6 +44,61 @@ class UAVHeading:
         self.thetaPossible = tPossible
         # self.staticAreaLength = False
 
+
+    '''
+     UAVHeading Function: __weightedSideDecision
+        Parameters:
+                    uav0: UAVHeading running the avoidance function,
+                    uav_others: list of other UAVHeading objects,
+                    keepOutZones: list of keep out zone objects from scenario environment
+        Description:
+                    Returns a polygon defining the possible flight
+                    area for the UAV calculated using the init values.
+    '''
+    def __weightedSideDecision(self, uav0, uav_others, keepOutZones):
+        side_sum = 0
+
+        if (45 < self.thetaRef < 135) or (225 < self.thetaRef < 315): # use y position difference
+        
+            side_sum += DECISION_WEIGHTS[0] * abs(self.position[1] - uav0.position[1])
+            side_sum += DECISION_WEIGHTS[1] * abs(self.position[1] - uav0.waypoint[1])
+
+            for uav in uav_others:
+                side_sum -= DECISION_WEIGHTS[2] * abs(self.position[1] - uav.position[1])
+            for koz in keepOutZones:
+                side_sum -= DECISION_WEIGHTS[3] * koz.area * abs(self.position[1] - koz.center[1])
+
+            if abs(self.thetaRef - 90) > abs(self.thetaRef - 270):
+                if side_sum > 0:
+                    return 1
+                else:
+                    return -1
+            else:
+                if side_sum > 0:
+                    return -1
+                else:
+                    return 1
+        else: # use x position difference
+
+            side_sum += DECISION_WEIGHTS[0] * abs(self.position[0] - uav0.position[0])
+            side_sum += DECISION_WEIGHTS[1] * abs(self.position[0] - uav0.waypoint[0])
+
+            for uav in uav_others:
+                side_sum -= DECISION_WEIGHTS[2] * abs(self.position[0] - uav.position[0])
+            for koz in keepOutZones:
+                side_sum -= DECISION_WEIGHTS[3] * koz.area * abs(self.position[0] - koz.center[0])
+
+            if abs(self.thetaRef) > abs(self.thetaRef - 180):
+                if side_sum > 0:
+                    return -1
+                else:
+                    return 1
+            else:
+                if side_sum > 0:
+                    return 1
+                else:
+                    return -1
+
     '''
      UAVHeading Function: possibleFlightArea
         Parameters: NONE
@@ -51,14 +106,21 @@ class UAVHeading:
                     Returns a polygon defining the possible flight
                     area for the UAV calculated using the init values.
     '''
-    def possibleFlightArea(self, area_length):
+    def possibleFlightArea(self, area_length, uav0):
         theta_ref = math.radians(self.thetaRef)
         theta_possible = math.radians(self.thetaPossible)
+    
+        side_decision = 0
+
+        points = [list(self.position)]
 
         if self.staticAreaLength:
             area_length = self.staticAreaLength
+            side_decision = self.__weightedSideDecision(uav0, [], []) # stub uav_others and koz lists for now
 
-        points = [list(self.position)]
+            if side_decision < 0:
+                points[-1][0] = self.position[0] + (3 * area_length * math.cos(theta_ref - (theta_possible / 2)))
+                points[-1][1] = self.position[1] + (3 * area_length * math.sin(theta_ref - (theta_possible / 2)))
 
         for div in range(-2, -5, -1):
             pt_x = self.position[0] + (area_length * math.cos(theta_ref + (theta_possible / div)))
@@ -74,6 +136,10 @@ class UAVHeading:
             pt_x = self.position[0] + (area_length * math.cos(theta_ref + (theta_possible / div)))
             pt_y = self.position[1] + (area_length * math.sin(theta_ref + (theta_possible / div)))
             points.append([pt_x, pt_y])
+
+        if self.staticAreaLength and side_decision > 0:
+            points[-1][0] = self.position[0] + (2 * area_length * math.cos(theta_ref + (theta_possible / 2)))
+            points[-1][1] = self.position[1] + (2 * area_length * math.sin(theta_ref + (theta_possible / 2)))
 
         points.append(list(self.position))
         return points
@@ -152,7 +218,7 @@ class UAVHeading:
         distance_to_other = self.__distance(self.position, uavh_other.position)
 
         if distance_to_other < DISTANCE_THRESHOLD:
-            other_area_points = uavh_other.possibleFlightArea((2 * distance_to_other))
+            other_area_points = uavh_other.possibleFlightArea((2 * distance_to_other), self)
             for j in range(len(other_area_points) -1):
                 other_line = [other_area_points[j], other_area_points[j+1]]
                 try:
@@ -169,7 +235,7 @@ class UAVHeading:
             if (len(intersects) == 1) or closeIntersects: # UAV 0 position possibly in UAV 1 flight area
                 if not uavh_other.staticAreaLength: # set to static flight area length
                     uavh_other.staticAreaLength = distance_to_other / 2
-                other_area_points = uavh_other.possibleFlightArea(uavh_other.staticAreaLength)
+                other_area_points = uavh_other.possibleFlightArea(uavh_other.staticAreaLength, self)
                 for j in range(len(other_area_points) -1):
                     other_line = [other_area_points[j], other_area_points[j+1]]
                     try:
