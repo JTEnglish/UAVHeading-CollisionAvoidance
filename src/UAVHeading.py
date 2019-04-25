@@ -4,6 +4,8 @@
 
 import math
 import matplotlib.pyplot as plt
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
 from AStar import a_star_planning, show_animation
 from UAVHcfg import *
@@ -245,8 +247,9 @@ class UAVHeading:
                             intersects.append(point)
                     except ValueError:
                         continue
-            elif uavh_other.staticAreaLength: # if there are 2 intersections and the static flight area length is set, reset
+            elif uavh_other.staticAreaLength and len(intersects) == 0:
                 uavh_other.staticAreaLength = False
+
         return intersects, other_area_points
 
     '''
@@ -317,8 +320,11 @@ class UAVHeading:
                         - Goal Position
                         - Border for Search Area
                         - KeepOut Zone Points for other UAV
+
+
+                        - use_pseudo_target
     '''
-    def __format_astar_input(self, koz, use_pseudo_target, staticAreaLength):
+    def __format_astar_input(self, koz, staticAreaLength):
         if staticAreaLength:
             print(TC.OKBLUE + '\t<Using static avoid area length>' + TC.ENDC)
         
@@ -328,7 +334,13 @@ class UAVHeading:
 
         pseudo_target = self.__midpoint(self.position, self.waypoint)
 
-        if not use_pseudo_target and not staticAreaLength:
+        # check if pseudo-target is reachable
+        pt = Point(pseudo_target[0], pseudo_target[1])
+        koz_polygon = Polygon(koz)
+        koz_scale = koz_polygon.buffer(2 * INTERVAL_SIZE) # buffer size for uav0 in A* search
+        use_pseudo_target = not koz_scale.contains(pt)
+
+        if not use_pseudo_target:# and not staticAreaLength:
             print(TC.OKBLUE + '\t<Using real target position>' + TC.ENDC)
 
             # compare with target position
@@ -424,12 +436,15 @@ class UAVHeading:
         # shift start and goal positions
         start_pt = [(self.position[0] + self.shift_x),
                     (self.position[1] + self.shift_y)]
-        # goal_pt = [(self.waypoint[0] + self.shift_x),
-        #            (self.waypoint[1] + self.shift_y)]
-        goal_pt = [(pseudo_target[0] + self.shift_x),
-                   (pseudo_target[1] + self.shift_y)]
+        goal_pt = []
+        if not use_pseudo_target:
+            goal_pt = [(self.waypoint[0] + self.shift_x),
+                       (self.waypoint[1] + self.shift_y)]
+        else:
+            goal_pt = [(pseudo_target[0] + self.shift_x),
+                    (pseudo_target[1] + self.shift_y)]
 
-        return start_pt, goal_pt, border_pts, koz_pts
+        return start_pt, goal_pt, border_pts, koz_pts, use_pseudo_target
 
     '''
     UAVLine Function: avoid
@@ -442,14 +457,14 @@ class UAVHeading:
     def avoid(self, uavh_other):
         intersects, area_points = self.__findIntersects(uavh_other)
         if len(intersects) == 0:
-            return [], area_points
+            return [self.waypoint], area_points
 
         print(TC.WARNING + 'AVOID.' + TC.ENDC)
 
-        use_pseudo_target = True
+        use_pseudo_target = False
         try: # get optimal path to destination
             # format UAVHeading data for A* input
-            start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target, bool(uavh_other.staticAreaLength))
+            start, goal, border, koz, use_pseudo_target = self.__format_astar_input(area_points, bool(uavh_other.staticAreaLength))
 
             ox, oy = [], []
             for pt in border:
@@ -471,33 +486,8 @@ class UAVHeading:
                                              ox, oy,
                                              INTERVAL_SIZE, (2 * INTERVAL_SIZE))
         except ValueError:
-            use_pseudo_target = False
-            try:
-                # format UAVHeading data for A* input
-                start, goal, border, koz = self.__format_astar_input(area_points, use_pseudo_target, bool(uavh_other.staticAreaLength))
-
-                ox, oy = [], []
-                for pt in border:
-                    ox.append(pt[0])
-                    oy.append(pt[1])
-                for pt in koz:
-                    ox.append(pt[0])
-                    oy.append(pt[1])
-
-                if show_animation:  # pragma: no cover
-                    plt.plot(ox, oy, ".k")
-                    plt.plot(start[0], start[1], "xr")
-                    plt.plot(goal[0], goal[1], "xb")
-                    plt.grid(True)
-                    plt.axis("equal")
-
-                path_x, path_y = a_star_planning(start[0], start[1],
-                                             goal[0], goal[1],
-                                             ox, oy,
-                                             INTERVAL_SIZE, (2 * INTERVAL_SIZE))
-            except ValueError:
-                print(TC.FAIL + '\t\t**No valid path found.**' + TC.ENDC)
-                return [], area_points
+            print(TC.FAIL + '\t\t**No valid path found.**' + TC.ENDC)
+            return [], area_points
 
         if show_animation:  # pragma: no cover
             plt.plot(path_x, path_y, "-r")
