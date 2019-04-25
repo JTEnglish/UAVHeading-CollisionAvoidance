@@ -144,6 +144,17 @@ class UAVHeading:
             points[-1][1] = self.position[1] + (2 * area_length * math.sin(theta_ref + (theta_possible / 2)))
 
         points.append(list(self.position))
+
+        # if uav0 is in possible flight area, recalculate with length/2
+        pt = Point(uav0.position[0], uav0.position[1])
+        koz_polygon = Polygon(points)
+        if koz_polygon.contains(pt):
+            if self.staticAreaLength:
+                self.staticAreaLength = self.staticAreaLength / 2
+            else:
+                self.staticAreaLength = area_length / 2
+            points = self.possibleFlightArea(area_length, uav0)
+
         return points
 
     '''
