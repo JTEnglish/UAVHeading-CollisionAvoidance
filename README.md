@@ -1,6 +1,12 @@
 # UAVHeading-CollisionAvoidance
 A*-based collision avoidance for UAV path planning
 
+## Table of Contents
+   * [Required Modules](#required-modules)
+   * [Avoidance Scenarios](#avoidance-scenarios)
+   * [Simulation Results](#simulation-results)
+   * [Testing](#testing)
+
 ## Required Modules
 * [Shapely](https://pypi.org/project/Shapely/)
 * [Matplotlib](https://matplotlib.org/)
@@ -37,11 +43,12 @@ DECISION_WEIGHTS = [            # weights for sidedWeightDecision in head-on avo
 SHOW_ANIMATION = False          # graph path planning search animation in avoidance function
 ```
 #### example.py
-Import UAVHeading Class
+Example Test Script
+* Import UAVHeading Class
 ```python
 from UAVHeading import UAVHeading
 ```
-Initialize UAV Objects
+* Initialize UAV Objects
 ```python
                 # (pos, waypt, speed, heading, tPossible)
 uav0 = UAVHeading((1.515593587271553, -132.53722833033987),
@@ -56,7 +63,7 @@ uav1 = UAVHeading((1.5098039166143598, -132.531099),
                   0.0,
                   30.0)
 ```
-Run Avoidance Algorithm
+* Run Avoidance Algorithm
 ```python
 waypoints, _ = uav0.avoid(uav1)
 ```
