@@ -21,6 +21,21 @@ A*-based collision avoidance for UAV path planning
 
 
 ## Testing
+#### UAVHcfg.py
+Configuration file for UAVHeading Class
+```python
+INTERVAL_SIZE = 0.0012          # defines resolution for A* search
+DISTANCE_THRESHOLD = 0.01       # upper bound distance for running UAVHeading.avoid(UAVHeading) function
+
+DECISION_WEIGHTS = [            # weights for sidedWeightDecision in head-on avoidance scenario
+    1.0,                            # UAV-0
+    6.0,                            # Goal Position for UAV-0
+    0.75,                           # Other UAVs
+    0.25                            # KeepOut Zoness
+]
+
+SHOW_ANIMATION = False          # graph path planning search animation in avoidance function
+```
 #### example.py
 Import UAVHeading Class
 ```python
