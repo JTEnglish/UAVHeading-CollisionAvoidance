@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-from AStar import a_star_planning, show_animation
+from AStar import a_star_planning
 from UAVHcfg import *
 from TerminalColors import TerminalColors as TC
 
@@ -485,7 +485,7 @@ class UAVHeading:
                 ox.append(pt[0])
                 oy.append(pt[1])
 
-            if show_animation:  # pragma: no cover
+            if SHOW_ANIMATION:  # pragma: no cover
                 plt.plot(ox, oy, ".k")
                 plt.plot(start[0], start[1], "xr")
                 plt.plot(goal[0], goal[1], "xb")
@@ -500,7 +500,7 @@ class UAVHeading:
             print(TC.FAIL + '\t\t**No valid path found.**' + TC.ENDC)
             return [], area_points
 
-        if show_animation:  # pragma: no cover
+        if SHOW_ANIMATION:  # pragma: no cover
             plt.plot(path_x, path_y, "-r")
             plt.show()
 

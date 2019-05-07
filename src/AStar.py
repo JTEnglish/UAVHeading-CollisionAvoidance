@@ -12,7 +12,7 @@ See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 import matplotlib.pyplot as plt
 import math
 
-show_animation = False
+from UAVHcfg import SHOW_ANIMATION
 
 class Node:
 
@@ -67,7 +67,7 @@ def a_star_planning(sx, sy, gx, gy, ox, oy, reso, rr):
         current = openset[c_id]
 
         # show graph
-        if show_animation:  # pragma: no cover
+        if SHOW_ANIMATION:  # pragma: no cover
             plt.plot(current.x * reso, current.y * reso, "xc")
             if len(closedset.keys()) % 10 == 0:
                 plt.pause(0.001)
