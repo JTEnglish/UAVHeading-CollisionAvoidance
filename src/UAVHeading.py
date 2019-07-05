@@ -158,7 +158,7 @@ class UAVHeading:
         return points
 
     '''
-     UAVLine Function: __lineIntersect
+     UAVHeading Function: __lineIntersect
         Parameters:
                     line1: [(x0, y0), (x1, y1)],
                     line2: [(x0, y0), (x1, y1)]
@@ -182,7 +182,7 @@ class UAVHeading:
         return x, y
 
     '''
-     UAVLine Function: __distance
+     UAVHeading Function: __distance
         Parameters:
                     a: point (x, y),
                     b: point (x, y)
@@ -193,7 +193,7 @@ class UAVHeading:
         return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
     '''
-     UAVLine Function: __isBetween
+     UAVHeading Function: __isBetween
         Parameters:
                     pt0: point (x, y),
                     intersect: point (x, y),
@@ -212,12 +212,12 @@ class UAVHeading:
         return math.isclose((distAB + distBC), distAC)
 
     '''
-     UAVLine Function: __findIntersects
+     UAVHeading Function: __findIntersects
         Parameters:
                     uavh_other: UAVHeading object to avoid
         Description:
                     Finds intersection points between the
-                    UAVLine path and the possible flight area polygon
+                    UAVHeading path and the possible flight area polygon
                     of the UAVHeading uavh_other.
                     Returns:
                         - Intersection list
@@ -264,7 +264,7 @@ class UAVHeading:
         return intersects, other_area_points
 
     '''
-    UAVLine Function: __scale_border
+    UAVHeading Function: __scale_border
         Parameters:
                     border: List of points to define search
                             border for A*,
@@ -286,7 +286,7 @@ class UAVHeading:
         return border
 
     '''
-    UAVLine Function: __intermediates
+    UAVHeading Function: __intermediates
         Parameters:
                     p1: first point (x,y),
                     p2: end point (x,y),
@@ -308,7 +308,7 @@ class UAVHeading:
             for i in range(1, nb_points+1)]
 
     '''
-    UAVLine Function: __midpoint
+    UAVHeading Function: __midpoint
         Parameters:
                     a: first point (x,y),
                     b: second point (x,y)
@@ -321,7 +321,7 @@ class UAVHeading:
         return [ (a[0]+b[0])/2, (a[1]+b[1])/2 ]
 
     '''
-    UAVLine Function: __format_astar_input
+    UAVHeading Function: __format_astar_input
         Parameters:
                     koz: area points list to avoid from 
                          other UAV
@@ -458,7 +458,7 @@ class UAVHeading:
         return start_pt, goal_pt, border_pts, koz_pts, use_pseudo_target
 
     '''
-    UAVLine Function: avoid
+    UAVHeading Function: avoid
         Parameters:
                     uavh_other: UAVHeading object to avoid
         Description:
