@@ -1,5 +1,5 @@
-INTERVAL_SIZE = 0.0012          # defines resolution for A* search
-DISTANCE_THRESHOLD = 0.01       # upper bound distance for running UAVHeading.avoid(UAVHeading) function
+INTERVAL_SIZE = 0.4         # defines resolution for A* search
+DISTANCE_THRESHOLD = 5       # upper bound distance for running UAVHeading.avoid(UAVHeading) function
 
 DECISION_WEIGHTS = [            # weights for sidedWeightDecision in head-on avoidance scenario
     1.0,                            # UAV-0
@@ -8,4 +8,4 @@ DECISION_WEIGHTS = [            # weights for sidedWeightDecision in head-on avo
     0.25                            # KeepOut Zoness
 ]
 
-SHOW_ANIMATION = False          # graph path planning search animation in avoidance function
+SHOW_ANIMATION = True          # graph path planning search animation in avoidance function

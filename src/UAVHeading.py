@@ -149,10 +149,11 @@ class UAVHeading:
         pt = Point(uav0.position[0], uav0.position[1])
         koz_polygon = Polygon(points)
         if koz_polygon.contains(pt):
+            print(TC.FAIL + '[HOTFIX - Line 152 | Area Length for Head-On Collision]' + TC.ENDC)
             if self.staticAreaLength:
                 self.staticAreaLength = self.staticAreaLength / 2
             else:
-                self.staticAreaLength = area_length / 2
+                self.staticAreaLength = area_length / 4
             points = self.possibleFlightArea(area_length, uav0, uavh_others)
 
         return points
@@ -223,12 +224,13 @@ class UAVHeading:
                         - Intersection list
                         - UAVHeading possible flight polygon point list
     '''
-    def findIntersects(self, uavh_others):
+    def __findIntersects(self, uavh_others):
         intersects = []
         koz_areas = []
         self_line = [(self.position[0], self.position[1]), (self.waypoint[0], self.waypoint[1])]
 
         for uavh_other in uavh_others:
+            tmp_intersects = []
             other_area_points = []
             distance_to_other = self.__distance(self.position, uavh_other.position)
 
@@ -240,30 +242,38 @@ class UAVHeading:
                         point = self.__lineIntersect(self_line, other_line)
 
                         if (self.__isBetween(self_line[0], point, self_line[1]) and self.__isBetween(other_line[0], point, other_line[1])):
-                            intersects.append(point)
-                            koz_areas.append((other_area_points, False)) # (area, static length)
+                            tmp_intersects.append(point)
                     except ValueError:
                         continue
 
-                closeIntersects = False
-                if len(intersects) == 2:
-                    closeIntersects = math.isclose(intersects[0][0], intersects[1][0]) and math.isclose(intersects[0][1], intersects[1][1])
-                if (len(intersects) == 1) or closeIntersects: # UAV 0 position possibly in UAV 1 flight area
-                    if not uavh_other.staticAreaLength: # set to static flight area length
-                        uavh_other.staticAreaLength = distance_to_other / 2
-                    other_area_points = uavh_other.possibleFlightArea(uavh_other.staticAreaLength, self, uavh_others)
-                    for j in range(len(other_area_points) -1):
-                        other_line = [other_area_points[j], other_area_points[j+1]]
-                        try:
-                            point = self.__lineIntersect(self_line, other_line)
 
-                            if (self.__isBetween(self_line[0], point, self_line[1]) and self.__isBetween(other_line[0], point, other_line[1])):
-                                intersects.append(point)
-                                koz_areas.append((other_area_points, True))
-                        except ValueError:
-                            continue
-                elif uavh_other.staticAreaLength and len(intersects) == 0:
-                    uavh_other.staticAreaLength = False
+                #~~~~~ Looks like this is unused.
+                # closeIntersects = False
+                # if len(tmp_intersects) == 2:
+                #     closeIntersects = math.isclose(tmp_intersects[0][0], tmp_intersects[1][0]) and math.isclose(tmp_intersects[0][1], tmp_intersects[1][1])
+                # if (len(tmp_intersects) == 1) or closeIntersects: # UAV 0 position possibly in UAV 1 flight area
+                #     tmp_intersects = []
+                #     print('IN FLIGHT AREA')
+
+                #     if not uavh_other.staticAreaLength: # set to static flight area length
+                #         uavh_other.staticAreaLength = distance_to_other / 2
+                #     other_area_points = uavh_other.possibleFlightArea(uavh_other.staticAreaLength, self, uavh_others)
+                #     for j in range(len(other_area_points) -1):
+                #         other_line = [other_area_points[j], other_area_points[j+1]]
+                #         try:
+                #             point = self.__lineIntersect(self_line, other_line)
+
+                #             if (self.__isBetween(self_line[0], point, self_line[1]) and self.__isBetween(other_line[0], point, other_line[1])):
+                #                 print('hello')
+                #                 tmp_intersects.append(point)
+                #         except ValueError:
+                #             continue
+                # elif uavh_other.staticAreaLength and len(intersects) == 0:
+                #     uavh_other.staticAreaLength = False
+
+                # koz_areas.append((other_area_points, uavh_other.staticAreaLength))
+                koz_areas.append(other_area_points)
+                intersects = intersects + tmp_intersects
 
         return intersects, koz_areas
 
@@ -339,7 +349,7 @@ class UAVHeading:
 
                         - use_pseudo_target
     '''
-    def __format_astar_input(self, koz, staticAreaLength):
+    def __format_astar_input(self, kozList, staticAreaLength):
         if staticAreaLength:
             print(TC.OKBLUE + '\t<Using static avoid area length>' + TC.ENDC)
         
@@ -347,13 +357,14 @@ class UAVHeading:
         x_min, y_min = self.position[0], self.position[1]
         x_max, y_max = self.position[0], self.position[1]
 
-        pseudo_target = self.__midpoint(self.position, self.waypoint)
+        # pseudo_target = self.__midpoint(self.position, self.waypoint)
 
         # check if pseudo-target is reachable
-        pt = Point(pseudo_target[0], pseudo_target[1])
-        koz_polygon = Polygon(koz)
-        koz_scale = koz_polygon.buffer(2 * INTERVAL_SIZE) # buffer size for uav0 in A* search
-        use_pseudo_target = not koz_scale.contains(pt)
+        # pt = Point(pseudo_target[0], pseudo_target[1])
+        # koz_polygon = Polygon(koz)
+        # koz_scale = koz_polygon.buffer(2 * INTERVAL_SIZE) # buffer size for uav0 in A* search
+
+        use_pseudo_target = False #not koz_scale.contains(pt)
 
         if not use_pseudo_target:# and not staticAreaLength:
             print(TC.OKBLUE + '\t<Using real target position>' + TC.ENDC)
@@ -395,16 +406,17 @@ class UAVHeading:
                 y_max = koz[0][1]
         else:
             # compare with all koz points
-            for pt in koz:
-                if x_min > pt[0]:
-                    x_min = pt[0]
-                if y_min > pt[1]:
-                    y_min = pt[1]
+            for koz in kozList:
+                for pt in koz:
+                    if x_min > pt[0]:
+                        x_min = pt[0]
+                    if y_min > pt[1]:
+                        y_min = pt[1]
 
-                if x_max < pt[0]:
-                    x_max = pt[0]
-                if y_max < pt[1]:
-                    y_max = pt[1]
+                    if x_max < pt[0]:
+                        x_max = pt[0]
+                    if y_max < pt[1]:
+                        y_max = pt[1]
         
         border_pts = [[x_max, y_max], 
                       [x_max, y_min],
@@ -436,17 +448,22 @@ class UAVHeading:
         border_pts += self.__intermediates(border_pts[2], border_pts[0], INTERVAL_SIZE)
         border_pts += self.__intermediates(border_pts[3], border_pts[2], INTERVAL_SIZE)
 
-        _koz = [] # modifying koz list passed by reference causes a bug for using real target case
+        # modifying koz list passed by reference causes a bug for using real target case
+        _kozList = [] 
         # shift KeepOut zone points
-        for pt in koz:
-            _koz.append([(pt[0] + self.shift_x), (pt[1] + self.shift_y)])
+        for koz in kozList:
+            tmp = []
+            for pt in koz:
+                tmp.append([(pt[0] + self.shift_x), (pt[1] + self.shift_y)])
+            _kozList.append(tmp)
 
         # add interval points for koz
         koz_pts = []
-        for i in range(len(_koz) -1):
-            koz_pts += self.__intermediates(_koz[i], _koz[i+1], INTERVAL_SIZE)
-        koz_pts += self.__intermediates(_koz[-1], _koz[0], INTERVAL_SIZE)
-        koz_pts += self.__intermediates(_koz[0], _koz[1], INTERVAL_SIZE)
+        for _koz in _kozList:
+            for i in range(len(_koz) -1):
+                koz_pts += self.__intermediates(_koz[i], _koz[i+1], INTERVAL_SIZE)
+            koz_pts += self.__intermediates(_koz[-1], _koz[0], INTERVAL_SIZE)
+            koz_pts += self.__intermediates(_koz[0], _koz[1], INTERVAL_SIZE)
 
         # shift start and goal positions
         start_pt = [(self.position[0] + self.shift_x),
@@ -479,12 +496,13 @@ class UAVHeading:
         use_pseudo_target = False
         try: # get optimal path to destination
             # format UAVHeading data for A* input
-            start, goal, border, koz, use_pseudo_target = self.__format_astar_input(avoid_areas, bool(uavh_other.staticAreaLength))
+            start, goal, border, koz, use_pseudo_target = self.__format_astar_input(avoid_areas, True)#bool(uavh_other.staticAreaLength))
 
             ox, oy = [], []
             for pt in border:
                 ox.append(pt[0])
                 oy.append(pt[1])
+                
             for pt in koz:
                 ox.append(pt[0])
                 oy.append(pt[1])
