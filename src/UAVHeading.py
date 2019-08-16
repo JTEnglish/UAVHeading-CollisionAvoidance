@@ -68,7 +68,11 @@ class UAVHeading:
             for uav in uav_others:
                 side_sum -= DECISION_WEIGHTS[2] * abs(self.position[1] - uav.position[1])
             for koz in keepOutZones:
-                side_sum -= DECISION_WEIGHTS[3] * koz.area * abs(self.position[1] - koz.center[1])
+                kx = [pt[0] for pt in koz]
+                ky = [pt[0] for pt in koz]
+                centroid = (sum(kx) / len(koz), sum(ky) / len(koz))
+                kPoly = Polygon(koz)
+                side_sum -= DECISION_WEIGHTS[3] * kPoly.area * abs(self.position[1] - centroid[1])
 
             if abs(self.thetaRef - 90) > abs(self.thetaRef - 270):
                 if side_sum > 0:
@@ -88,7 +92,11 @@ class UAVHeading:
             for uav in uav_others:
                 side_sum -= DECISION_WEIGHTS[2] * abs(self.position[0] - uav.position[0])
             for koz in keepOutZones:
-                side_sum -= DECISION_WEIGHTS[3] * koz.area * abs(self.position[0] - koz.center[0])
+                kx = [pt[0] for pt in koz]
+                ky = [pt[0] for pt in koz]
+                centroid = (sum(kx) / len(koz), sum(ky) / len(koz))
+                kPoly = Polygon(koz)
+                side_sum -= DECISION_WEIGHTS[3] * kPoly.area * abs(self.position[0] - centroid[0])
 
             if abs(self.thetaRef) > abs(self.thetaRef - 180):
                 if side_sum > 0:
@@ -108,7 +116,7 @@ class UAVHeading:
                     Returns a polygon defining the possible flight
                     area for the UAV calculated using the init values.
     '''
-    def possibleFlightArea(self, area_length, uav0, uavh_others):
+    def possibleFlightArea(self, area_length, uav0, uavh_others, static_kozs):
         theta_ref = math.radians(self.thetaRef)
         theta_possible = math.radians(self.thetaPossible)
     
@@ -118,7 +126,7 @@ class UAVHeading:
 
         if self.staticAreaLength:
             area_length = self.staticAreaLength
-            side_decision = self.__weightedSideDecision(uav0, uavh_others, []) # stub uav_others and koz lists for now
+            side_decision = self.__weightedSideDecision(uav0, uavh_others, static_kozs) # stub uav_others and koz lists for now
 
             if side_decision < 0:
                 points[-1][0] = self.position[0] + (3 * area_length * math.cos(theta_ref - (theta_possible / 2)))
@@ -154,7 +162,7 @@ class UAVHeading:
                 self.staticAreaLength = self.staticAreaLength / 2
             else:
                 self.staticAreaLength = area_length / 4
-            points = self.possibleFlightArea(area_length, uav0, uavh_others)
+            points = self.possibleFlightArea(area_length, uav0, uavh_others, static_kozs)
 
         return points
 
@@ -224,18 +232,19 @@ class UAVHeading:
                         - Intersection list
                         - UAVHeading possible flight polygon point list
     '''
-    def __findIntersects(self, uavh_others):
+    def __findIntersects(self, uavh_others, static_kozs):
         intersects = []
         koz_areas = []
         self_line = [(self.position[0], self.position[1]), (self.waypoint[0], self.waypoint[1])]
 
+        # check for potential UAV collisions
         for uavh_other in uavh_others:
             tmp_intersects = []
             other_area_points = []
             distance_to_other = self.__distance(self.position, uavh_other.position)
 
             if distance_to_other < DISTANCE_THRESHOLD:
-                other_area_points = uavh_other.possibleFlightArea((2 * distance_to_other), self, uavh_others)
+                other_area_points = uavh_other.possibleFlightArea((2 * distance_to_other), self, uavh_others, static_kozs)
                 for j in range(len(other_area_points) -1):
                     other_line = [other_area_points[j], other_area_points[j+1]]
                     try:
@@ -246,34 +255,22 @@ class UAVHeading:
                     except ValueError:
                         continue
 
-
-                #~~~~~ Looks like this is unused.
-                # closeIntersects = False
-                # if len(tmp_intersects) == 2:
-                #     closeIntersects = math.isclose(tmp_intersects[0][0], tmp_intersects[1][0]) and math.isclose(tmp_intersects[0][1], tmp_intersects[1][1])
-                # if (len(tmp_intersects) == 1) or closeIntersects: # UAV 0 position possibly in UAV 1 flight area
-                #     tmp_intersects = []
-                #     print('IN FLIGHT AREA')
-
-                #     if not uavh_other.staticAreaLength: # set to static flight area length
-                #         uavh_other.staticAreaLength = distance_to_other / 2
-                #     other_area_points = uavh_other.possibleFlightArea(uavh_other.staticAreaLength, self, uavh_others)
-                #     for j in range(len(other_area_points) -1):
-                #         other_line = [other_area_points[j], other_area_points[j+1]]
-                #         try:
-                #             point = self.__lineIntersect(self_line, other_line)
-
-                #             if (self.__isBetween(self_line[0], point, self_line[1]) and self.__isBetween(other_line[0], point, other_line[1])):
-                #                 print('hello')
-                #                 tmp_intersects.append(point)
-                #         except ValueError:
-                #             continue
-                # elif uavh_other.staticAreaLength and len(intersects) == 0:
-                #     uavh_other.staticAreaLength = False
-
-                # koz_areas.append((other_area_points, uavh_other.staticAreaLength))
                 koz_areas.append(other_area_points)
                 intersects = intersects + tmp_intersects
+
+        # check for potential static KoZ collisions
+        for area in static_kozs:
+            for i in range(len(area) - 1):
+                other_line = [area[i], area[i+1]]
+                try:
+                    point = self.__lineIntersect(self_line, other_line)
+
+                    if (self.__isBetween(self_line[0], point, self_line[1]) and self.__isBetween(other_line[0], point, other_line[1])):
+                        intersects.append(point)
+                        koz_areas.append(area)
+                        break
+                except ValueError:
+                    continue
 
         return intersects, koz_areas
 
@@ -486,8 +483,8 @@ class UAVHeading:
                     Returns the list of waypoints generated by
                     the A* search algorithm.
     '''
-    def avoid(self, uavh_others):
-        intersects, avoid_areas = self.__findIntersects(uavh_others)
+    def avoid(self, uavh_others, static_kozs):
+        intersects, avoid_areas = self.__findIntersects(uavh_others, static_kozs)
         if len(intersects) == 0:
             return [self.waypoint], avoid_areas
 
