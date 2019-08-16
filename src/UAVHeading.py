@@ -505,9 +505,9 @@ class UAVHeading:
                 oy.append(pt[1])
 
             if SHOW_ANIMATION:  # pragma: no cover
-                plt.plot(ox, oy, ".k")
-                plt.plot(start[0], start[1], "xr")
-                plt.plot(goal[0], goal[1], "xb")
+                plt.plot(ox, oy, ".k", label='Search Area Obstacles')
+                plt.plot(start[0], start[1], "xr", label='UAV0 Position')
+                plt.plot(goal[0], goal[1], "xb", label='UAV0 Goal')
                 plt.grid(True)
                 plt.axis("equal")
 
@@ -520,7 +520,8 @@ class UAVHeading:
             return [], avoid_areas
 
         if SHOW_ANIMATION:  # pragma: no cover
-            plt.plot(path_x, path_y, "-r")
+            plt.plot(path_x, path_y, "-r", label='Shortest Path')
+            plt.legend()
             plt.show()
 
         # format A* output for waypoint list
