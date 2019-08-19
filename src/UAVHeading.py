@@ -25,6 +25,7 @@ class UAVHeading:
     staticAreaLength = False
     shift_x = 0
     shift_y = 0
+    lastClear = False
 
     '''
      UAVHeading Function: __init__
@@ -486,9 +487,13 @@ class UAVHeading:
     def avoid(self, uavh_others, static_kozs):
         intersects, avoid_areas = self.__findIntersects(uavh_others, static_kozs)
         if len(intersects) == 0:
+            if not self.lastClear:
+                print(TC.OKGREEN + 'PATH CLEAR.' + TC.ENDC)
+            self.lastClear = True
             return [self.waypoint], avoid_areas
 
         print(TC.WARNING + 'AVOID.' + TC.ENDC)
+        self.lastClear = False
 
         use_pseudo_target = False
         try: # get optimal path to destination
