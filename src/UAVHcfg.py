@@ -1,4 +1,4 @@
-INTERVAL_SIZE = 0.4         # defines resolution for A* search
+INTERVAL_SIZE = 0.45         # defines resolution for A* search
 DISTANCE_THRESHOLD = 8       # upper bound distance for running UAVHeading.avoid(UAVHeading) function
 
 DECISION_WEIGHTS = [            # weights for sidedWeightDecision in head-on avoidance scenario

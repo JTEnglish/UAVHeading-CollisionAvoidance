@@ -261,6 +261,7 @@ class UAVHeading:
 
         # check for potential static KoZ collisions
         for area in static_kozs:
+            koz_areas.append(area)
             for i in range(len(area) - 1):
                 other_line = [area[i], area[i+1]]
                 try:
@@ -268,7 +269,6 @@ class UAVHeading:
 
                     if (self.__isBetween(self_line[0], point, self_line[1]) and self.__isBetween(other_line[0], point, other_line[1])):
                         intersects.append(point)
-                        koz_areas.append(area)
                         break
                 except ValueError:
                     continue
@@ -508,7 +508,7 @@ class UAVHeading:
             for pt in koz:
                 ox.append(pt[0])
                 oy.append(pt[1])
-
+                
             if SHOW_ANIMATION:  # pragma: no cover
                 plt.plot(ox, oy, ".k", label='Search Area Obstacles')
                 plt.plot(start[0], start[1], "xr", label='UAV0 Position')
