@@ -8,4 +8,7 @@ DECISION_WEIGHTS = [            # weights for sidedWeightDecision in head-on avo
     0.25                            # KeepOut Zoness
 ]
 
+MINIMUM_SEPARATION = 1.5
+POJECT_LENGTH_SCALAR = 2
+
 SHOW_ANIMATION = False          # graph path planning search animation in avoidance function
