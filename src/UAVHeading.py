@@ -423,7 +423,7 @@ class UAVHeading:
 
         # add padding to border
         center = self.__midpoint((x_max, y_max), (x_min, y_min))
-        border_pts = self.__scale_border(border_pts, center, (4 * INTERVAL_SIZE))
+        border_pts = self.__scale_border(border_pts, center, (5 * INTERVAL_SIZE))
 
         # shift (minx, miny) to (0, 0) for A*
         if (border_pts[3][0] < 0): # x min < 0
